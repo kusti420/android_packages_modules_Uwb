@@ -65,6 +65,7 @@ import com.android.server.ranging.common.RangingUtils;
 import com.android.server.ranging.common.RangingUtils.InternalReason;
 import com.android.server.ranging.common.StateMachine;
 import com.android.server.ranging.session.ConfigurationManager;
+import com.android.server.uwb.IchthysRangingPolicy;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BiMap;
@@ -221,6 +222,16 @@ public class UwbAdapter implements RangingAdapter {
         if (!isConfigValid(config)) {
             Log.v(TAG, "Invalid session config passed to start");
             mCallbacks.onClosed(InternalReason.UNSUPPORTED);
+            return;
+        }
+        // IchthysOS: UWB is refused unless the app is exempt or on ichthys_uwb_pkgs. Close
+        // with the reason the UWB stack's own missing-permission status maps to; the session's
+        // other technologies (BLE, Wi-Fi RTT) keep running.
+        if (!IchthysRangingPolicy.isRangingAllowed(mContext, mAttributionSource)
+                || !IchthysRangingPolicy.isRangingAllowed(
+                        mContext, nonPrivilegedAttributionSource)) {
+            Log.w(TAG, "UWB ranging not allowed for this app");
+            closeForReason(convertStatus(Utils.MISSING_PERMISSION_UWB_RANGING));
             return;
         }
 

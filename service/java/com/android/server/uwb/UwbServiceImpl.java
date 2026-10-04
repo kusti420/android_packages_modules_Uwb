@@ -47,6 +47,7 @@ import android.uwb.IUwbRangingCallbacks;
 import android.uwb.IUwbVendorUciCallback;
 import android.uwb.LogicalLinkConnectionParams;
 import android.uwb.LogicalLinkCreationParams;
+import android.uwb.RangingChangeReason;
 import android.uwb.SessionHandle;
 import android.uwb.UwbAddress;
 import android.uwb.UwbManager;
@@ -345,6 +346,18 @@ public class UwbServiceImpl extends IUwbAdapter.Stub {
         enforceUwbPrivilegedPermission();
         chipId = validateChipId(chipId);
         mUwbInjector.enforceUwbRangingPermissionForPreflight(attributionSource);
+        // IchthysOS: an app that holds UWB_RANGING but may not range gets the stack's normal
+        // "session open failed" answer, the one a background app gets on a stock phone.
+        if (mUwbInjector.isUwbRangingRefusedByIchthysPolicy(attributionSource)) {
+            Log.w(TAG, "openRanging - refused by the IchthysOS ranging policy");
+            try {
+                rangingCallbacks.onRangingOpenFailed(sessionHandle,
+                        RangingChangeReason.SYSTEM_POLICY, new PersistableBundle());
+            } catch (RemoteException e) {
+                // The caller is gone; nothing to tell it.
+            }
+            return;
+        }
         mUwbServiceCore.openRanging(attributionSource,
                 sessionHandle,
                 rangingCallbacks,

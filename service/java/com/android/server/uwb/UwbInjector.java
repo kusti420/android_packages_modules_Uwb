@@ -271,12 +271,27 @@ public class UwbInjector {
     }
 
     /**
+     * IchthysOS: whether ranging must be refused although the chain holds UWB_RANGING, because
+     * an app in it is neither exempt nor on ichthys_uwb_pkgs. The caller holds the permission,
+     * so it is answered with a failed session open, never with a SecurityException that no
+     * stock phone would throw at it.
+     */
+    public boolean isUwbRangingRefusedByIchthysPolicy(
+            @NonNull AttributionSource attributionSource) {
+        return !IchthysRangingPolicy.isRangingAllowed(mContext, attributionSource);
+    }
+
+    /**
      * Returns true if the UWB_RANGING permission is granted for the calling app.
      *
      * <p>Used for checking permission before first data delivery for the session.
      */
     public boolean checkUwbRangingPermissionForStartDataDelivery(
             @NonNull AttributionSource attributionSource, @NonNull String message) {
+        // IchthysOS: same answer as a revoked grant when the app left ichthys_uwb_pkgs.
+        if (!IchthysRangingPolicy.isRangingAllowed(mContext, attributionSource)) {
+            return false;
+        }
         int permissionCheckResult = mPermissionManager.checkPermissionForStartDataDelivery(
                 UWB_RANGING, attributionSource, message);
         return permissionCheckResult == PERMISSION_GRANTED;

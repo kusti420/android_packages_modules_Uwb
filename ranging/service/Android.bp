@@ -55,6 +55,7 @@ java_library {
         "framework-bluetooth.stubs.module_lib",
         "framework-location.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
+        "framework-permission-s.stubs.module_lib", // IchthysOS: RoleManager (radio exemptions)
         "ServiceUwbResources",
     ],
 
